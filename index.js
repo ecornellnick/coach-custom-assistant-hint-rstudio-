@@ -89,8 +89,8 @@ Phrase your hints as questions or suggestions.
       }
 
     } catch (error) {
-      console.error("Main error:", error);
-      codioIDE.coachBot.write("Sorry, I couldn't generate a hint at this time.");
+      //console.error("Main error:", error);
+      //codioIDE.coachBot.write("Sorry, I couldn't generate a hint at this time.");
       codioIDE.coachBot.showMenu();
     }
   }
