@@ -11,22 +11,23 @@ Do not ask if they have any other questions.
 
   async function onButtonPress() {
     try {
-      // Get all open editors
-      const openEditors = await codioIDE.editor.getOpenFiles();
-      
-      // Save all open .Rmd files
-      for (const editor of openEditors) {
-        if (editor.path.toLowerCase().endsWith('.rmd')) {
-          await codioIDE.editor.saveFile(editor.path);
-        }
+      try {
+        // Try to save current file
+        await codioIDE.editor.save();
+        console.log("Saved current file");
+      } catch (saveError) {
+        console.error("Error saving file:", saveError);
+        // Continue even if save fails
       }
-      
-      // Add a small delay to ensure saves complete
+
+      // Add a small delay
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Rest of your existing code...
       let context = await codioIDE.coachBot.getContext();
+      console.log("Context retrieved:", context);
+      
       let filetree = await codioIDE.files.getStructure();
+      console.log("Filetree retrieved:", filetree);
       
       async function getFilesWithExtension(obj, extension) {
         const files = {};
@@ -38,8 +39,13 @@ Do not ask if they have any other questions.
             } else if (obj[key] === 1 && key.toLowerCase().endsWith(extension)) {
               let filepath = path + "/" + key;
               filepath = filepath.substring(1);
-              const fileContent = await codioIDE.files.getContent(filepath);
-              files[key] = fileContent;
+              try {
+                const fileContent = await codioIDE.files.getContent(filepath);
+                files[key] = fileContent;
+                console.log(`Successfully read file: ${filepath}`);
+              } catch (readError) {
+                console.error(`Error reading file ${filepath}:`, readError);
+              }
             }
           }
         }
@@ -49,6 +55,7 @@ Do not ask if they have any other questions.
       }
 
       const files = await getFilesWithExtension(filetree, '.rmd');
+      console.log("Files retrieved:", Object.keys(files));
 
       let student_files = "";
 
@@ -58,6 +65,8 @@ Do not ask if they have any other questions.
         file content: 
         ${files[filename]}\n\n\n`);
       }
+
+      console.log("Preparing to send prompt");
 
       const userPrompt = `Here are the student's code files:
 
@@ -78,10 +87,14 @@ Phrase your hints as questions or suggestions.
 
       if (result && result.response) {
         codioIDE.coachBot.write(result.response);
+      } else {
+        console.error("No response from coachBot");
+        codioIDE.coachBot.write("Sorry, I couldn't generate a hint at this time.");
       }
 
     } catch (error) {
-      codioIDE.coachBot.write("An unexpected error occurred");
+      console.error("Main error:", error);
+      codioIDE.coachBot.write("An unexpected error occurred. Please check the console for details.");
       codioIDE.coachBot.showMenu();
     }
   }
