@@ -7,31 +7,36 @@ Do not provide the full solution.
 Do not ask if they have any other questions.
   `
   
-  // register(id: unique button id, name: name of button visible in Coach, function: function to call when button is clicked) 
   codioIDE.coachBot.register("customHintsRStudio", "Provide a hint on what to do next", onButtonPress);
 
-  // function called when I have a question button is pressed
   async function onButtonPress() {
     try {
-      // automatically collects all available context 
-      // returns the following object: {guidesPage, assignmentData, files, error}
-      let context = await codioIDE.coachBot.getContext();
+      // Get all open editors
+      const openEditors = await codioIDE.editor.getOpenFiles();
       
-      // gets the filetree as an object
+      // Save all open .Rmd files
+      for (const editor of openEditors) {
+        if (editor.path.toLowerCase().endsWith('.rmd')) {
+          await codioIDE.editor.saveFile(editor.path);
+        }
+      }
+      
+      // Add a small delay to ensure saves complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Rest of your existing code...
+      let context = await codioIDE.coachBot.getContext();
       let filetree = await codioIDE.files.getStructure();
       
-      // recursively search filetree for files with specific extension
       async function getFilesWithExtension(obj, extension) {
         const files = {};
 
         async function traverse(path, obj) {
           for (const key in obj) {
             if (typeof obj[key] === 'object') {
-              // appending next object to traverse to path
               await traverse(path + "/" + key, obj[key]);
             } else if (obj[key] === 1 && key.toLowerCase().endsWith(extension)) {
               let filepath = path + "/" + key;
-              // removed the first / from filepath
               filepath = filepath.substring(1);
               const fileContent = await codioIDE.files.getContent(filepath);
               files[key] = fileContent;
@@ -43,12 +48,10 @@ Do not ask if they have any other questions.
         return files;
       }
 
-      // retrieve files and file content with specific extension
       const files = await getFilesWithExtension(filetree, '.rmd');
 
       let student_files = "";
 
-      // join all fetched files as one string for LLM context 
       for (const filename in files) {
         student_files = student_files.concat(`
         filename: ${filename}
@@ -73,7 +76,6 @@ Phrase your hints as questions or suggestions.
         messages: [{"role": "user", "content": userPrompt}]
       });
 
-      // Handle the result
       if (result && result.response) {
         codioIDE.coachBot.write(result.response);
       }
