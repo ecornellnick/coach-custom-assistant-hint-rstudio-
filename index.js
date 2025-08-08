@@ -2,7 +2,7 @@
   
   const systemPrompt = `You are an assistant helping students understand and make progress themselves on their programming assignments. 
 You will be provided with the .Rmd file they're working in.
-Based on this information, provide at most 2 relevant hints or ideas for things they can try next to make progress.
+Based on this information, provide only 1 relevant hint or idea for things they can try next to make progress.
 Do not provide the full solution. 
 Do not ask if they have any other questions.
   `
@@ -12,15 +12,12 @@ Do not ask if they have any other questions.
   async function onButtonPress() {
     try {
       try {
-        // Try to save current file
         await codioIDE.editor.save();
         console.log("Saved current file");
       } catch (saveError) {
         console.error("Error saving file:", saveError);
-        // Continue even if save fails
       }
 
-      // Add a small delay
       await new Promise(resolve => setTimeout(resolve, 100));
 
       let context = await codioIDE.coachBot.getContext();
@@ -88,13 +85,12 @@ Phrase your hints as questions or suggestions.
       if (result && result.response) {
         codioIDE.coachBot.write(result.response);
       } else {
-        console.error("No response from coachBot");
-        codioIDE.coachBot.write("Sorry, I couldn't generate a hint at this time.");
+        throw new Error("No response from coachBot");
       }
 
     } catch (error) {
       console.error("Main error:", error);
-      codioIDE.coachBot.write("An unexpected error occurred. Please check the console for details.");
+      codioIDE.coachBot.write("Sorry, I couldn't generate a hint at this time.");
       codioIDE.coachBot.showMenu();
     }
   }
