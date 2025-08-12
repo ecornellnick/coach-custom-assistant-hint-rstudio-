@@ -1,7 +1,7 @@
 (async function(codioIDE, window) {
   
   const systemPrompt = `You are an assistant helping students understand and make progress themselves on their programming assignments. 
-You will be provided with the .Rmd file they're working in.
+You will be provided with the .Rmd and/or .R file they're working in.
 Make sure to remind the student to save their code file *before* asking for a hint.
 Based on this information, provide only 1 relevant hint or idea for things they can try next to make progress.
 Do not provide the full solution. 
@@ -27,14 +27,14 @@ Do not ask if they have any other questions.
       let filetree = await codioIDE.files.getStructure();
       console.log("Filetree retrieved:", filetree);
       
-      async function getFilesWithExtension(obj, extension) {
+      async function getFilesWithExtensions(obj, extensions) {
         const files = {};
 
         async function traverse(path, obj) {
           for (const key in obj) {
             if (typeof obj[key] === 'object') {
               await traverse(path + "/" + key, obj[key]);
-            } else if (obj[key] === 1 && key.toLowerCase().endsWith(extension)) {
+            } else if (obj[key] === 1 && extensions.some(ext => key.toLowerCase().endsWith(ext))) {
               let filepath = path + "/" + key;
               filepath = filepath.substring(1);
               try {
@@ -52,7 +52,7 @@ Do not ask if they have any other questions.
         return files;
       }
 
-      const files = await getFilesWithExtension(filetree, '.rmd');
+      const files = await getFilesWithExtensions(filetree, ['.rmd', '.r']);
       console.log("Files retrieved:", Object.keys(files));
 
       let student_files = "";
